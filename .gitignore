@@ -1,8 +1,9 @@
 .ipynb_checkpoints
 .vscode
-datasets/
-
 .DS_Store
+data/
+.idea
+.vector_cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -8,6 +8,7 @@ from data_loader.vocab import Vocab
 
 from model.models import GRUGenerator
 
+
 def train(data_path, num_epochs=2):
     dataset = VietnameseNameDataset(data_path)
     train_data, _ = split_data(dataset, test_split=0.1)
@@ -22,7 +23,7 @@ def train(data_path, num_epochs=2):
     for epoch in range(num_epochs):
         for names, target_names in batch_iter(train_data, 16):
             target = vocab.chars2indices(target_names)
-            loss = 0.0
+            loss = torch.zeros(1)
             optimizer.zero_grad()
             outputs = model(names)
             for i in range(outputs.shape[0]):
@@ -33,6 +34,7 @@ def train(data_path, num_epochs=2):
             losses.append(loss.item())
     
     return losses
+
 
 if __name__ == "__main__":
     losses = train('data_loader/data/Vietnamese.txt', num_epochs=1000)
