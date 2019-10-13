@@ -1,4 +1,4 @@
-name: bert-squad
+name: squad
 channels:
   - pytorch
   - conda-forge
@@ -14,4 +14,6 @@ dependencies:
   - tensorboardX
   - tqdm
   - urllib3
-  - pytorch
+  - pytorch=1.0.0
+  - pip:
+    - torch==1.0.0
