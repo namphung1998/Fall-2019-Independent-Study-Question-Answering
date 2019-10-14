@@ -47,6 +47,8 @@ class Encoder(nn.Module):
         :param drop_prob: (float) Dropout probability
         """
         super(Encoder, self).__init__()
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
         self.drop_prob = drop_prob
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True,
                             dropout=drop_prob if num_layers > 1 else 0.0)
@@ -74,11 +76,12 @@ class Encoder(nn.Module):
 
         enc_hiddens = F.dropout(enc_hiddens, self.drop_prob, self.training)
 
-        print(last_hidden.shape)
-
-        last_hidden = torch.sum(last_hidden, dim=0)
+        last_hidden = torch.transpose(last_hidden, 0, 1) # shape (batch_size, num_layers * num_directions, hidden_size)
+        last_hidden = torch.reshape(last_hidden, (-1, self.num_layers, self.hidden_size * 2))
+        last_hidden = torch.sum(last_hidden, dim=1)
         # last_hidden = torch.squeeze(last_hidden, 1)
 
+        #TODO: fix last_hidden.shape to be (batch_size, 2 * hidden_size)
         return enc_hiddens, last_hidden
 
 
@@ -106,8 +109,6 @@ class Attention(nn.Module):
         :returns: output_t (Tensor) tensor of shape (batch_size, seq_len, hidden_size)
         """
 
-        print(question.shape)
-
         context_hidden_proj = self.attn_proj(context) # shape (batch_size, context_len, hidden_size)
         scores = torch.bmm(context_hidden_proj, torch.unsqueeze(question, 2)) # shape (batch_size, context_len, 1)
         scores = torch.squeeze(scores, -1)
@@ -127,6 +128,7 @@ class Output(nn.Module):
 
     def __init__(self, hidden_size, drop_prob=0.0):
         super(Output, self).__init__()
+        self.drop_prob = drop_prob
         self.output_proj1 = nn.Linear(hidden_size, 1)
         self.output_proj2 = nn.Linear(hidden_size, 1)
 
@@ -137,8 +139,8 @@ class Output(nn.Module):
         :param masks:
         :return:
         """
-        logits1 = self.output_proj1(att)
-        logits2 = self.output_proj2(att)
+        logits1 = F.dropout(self.output_proj1(att), self.drop_prob)
+        logits2 = F.dropout(self.output_proj2(att), self.drop_prob)
 
         log_p1 = masked_softmax(logits1.squeeze(-1), masks, log_softmax=True)
         log_p2 = masked_softmax(logits2.squeeze(-1), masks, log_softmax=True)
