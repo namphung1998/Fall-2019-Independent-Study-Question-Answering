@@ -24,7 +24,7 @@ def get_setup_args():
                         default='https://github.com/chrischute/squad/data/test-v2.0.json')
     parser.add_argument('--glove_url',
                         type=str,
-                        default='http://nlp.stanford.edu/data/glove.840B.300d.zip')
+                        default='https://nlp.stanford.edu/data/glove.840B.300d.zip')
     parser.add_argument('--dev_meta_file',
                         type=str,
                         default='./data/dev_meta.json')

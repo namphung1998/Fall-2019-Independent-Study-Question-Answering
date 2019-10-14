@@ -16,6 +16,9 @@ import os
 import spacy
 import ujson as json
 import urllib.request
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 from args import get_setup_args
 from codecs import open
