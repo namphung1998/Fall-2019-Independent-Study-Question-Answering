@@ -1,0 +1,10 @@
+ujson
+numpy
+spacy==2.0.16
+tensorboard
+tensorflow
+tensorboardX
+tqdm
+urllib3
+jupyter
+torch

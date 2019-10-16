@@ -68,6 +68,7 @@ class Encoder(nn.Module):
         x = x[sort_idx]
         x = pack_padded_sequence(x, lengths, batch_first=True)
 
+        self.lstm.flatten_parameters()
         enc_hiddens, (last_hidden, last_cell) = self.lstm(x) # enc_hiddens is a PackedSequence object
                                                              # last_hidden is of shape (num_layers * num_directions, batch_size, hidden_size)
         enc_hiddens, _ = pad_packed_sequence(enc_hiddens, batch_first=True, total_length=orig_len)
@@ -76,9 +77,13 @@ class Encoder(nn.Module):
 
         enc_hiddens = F.dropout(enc_hiddens, self.drop_prob, self.training)
 
-        last_hidden = torch.transpose(last_hidden, 0, 1) # shape (batch_size, num_layers * num_directions, hidden_size)
-        last_hidden = torch.reshape(last_hidden, (-1, self.num_layers, self.hidden_size * 2))
-        last_hidden = torch.sum(last_hidden, dim=1)
+        last_hidden = last_hidden.view(self.num_layers, 2, -1, self.hidden_size)[-1, 0] # shape (batch_size, hidden_size)
+
+        last_hidden_reverse = enc_hiddens[:, 0, self.hidden_size:]
+        last_hidden = torch.cat([last_hidden, last_hidden_reverse], dim=-1) # shape (batch_size, 2 * hidden_size)
+
+        # last_hidden = torch.reshape(last_hidden, (-1, self.num_layers, self.hidden_size * 2))
+        # last_hidden = torch.sum(last_hidden, dim=1)
         # last_hidden = torch.squeeze(last_hidden, 1)
 
         #TODO: fix last_hidden.shape to be (batch_size, 2 * hidden_size)
