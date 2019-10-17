@@ -101,7 +101,8 @@ class Attention(nn.Module):
     def __init__(self, hidden_size):
         super(Attention, self).__init__()
         self.hidden_size = hidden_size
-        self.attn_proj = nn.Linear(hidden_size, hidden_size)
+        self.attn_proj_1 = nn.Linear(hidden_size, hidden_size)
+        self.attn_proj_2 = nn.Linear(hidden_size, hidden_size)
 
     def forward(self, context, question, c_masks):
         """
@@ -114,16 +115,22 @@ class Attention(nn.Module):
         :returns: output_t (Tensor) tensor of shape (batch_size, seq_len, hidden_size)
         """
 
-        context_hidden_proj = self.attn_proj(context) # shape (batch_size, context_len, hidden_size)
-        scores = torch.bmm(context_hidden_proj, torch.unsqueeze(question, 2)) # shape (batch_size, context_len, 1)
-        scores = torch.squeeze(scores, -1)
+        # context_hidden_proj = self.attn_proj(context) # shape (batch_size, context_len, hidden_size)
+        logits_1 = torch.bmm(self.attn_proj_1(context), torch.unsqueeze(question, 2)) # shape (batch_size, context_len, 1)
+        logits_1 = torch.squeeze(logits_1, -1)
 
-        alpha_t = masked_softmax(scores, c_masks, dim=1) # shape (batch_size, context_len)
-        output_t = torch.mul(context, alpha_t.unsqueeze(2))
+        logits_2 = torch.bmm(self.attn_proj_2(context), torch.unsqueeze(question, 2)) # shape (batch_size, context_len, 1)
+        logits_2 = torch.squeeze(logits_2, -1)
+
+        log_p1 = masked_softmax(logits_1, c_masks, dim=1, log_softmax=True)
+        log_p2 = masked_softmax(logits_2, c_masks, dim=1, log_softmax=True)
+        #
+        # alpha_t = masked_softmax(scores, c_masks, dim=1) # shape (batch_size, context_len)
+        # output_t = torch.mul(context, alpha_t.unsqueeze(2))
         #
         # output_t = torch.bmm(torch.unsqueeze(alpha_t, 1), context) # shape (batch_size, 1, hidden_size)
         # output_t = output_t.squeeze(1)
-        return output_t
+        return log_p1, log_p2
 
 
 class Output(nn.Module):

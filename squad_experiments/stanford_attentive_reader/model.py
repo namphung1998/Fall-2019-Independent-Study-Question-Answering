@@ -28,6 +28,6 @@ class StanfordAttentiveReader(nn.Module):
 
         att = self.attn(contexts, questions, c_mask)
 
-        out = self.output(att, c_mask)
+        # out = self.output(att, c_mask)
 
-        return out
+        return att
