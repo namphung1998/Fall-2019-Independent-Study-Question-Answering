@@ -5,6 +5,8 @@ data/
 .idea
 .vector_cache
 save/
+
+*.ipynb
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
