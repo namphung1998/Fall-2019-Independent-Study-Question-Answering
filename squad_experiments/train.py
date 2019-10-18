@@ -21,6 +21,8 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, SQuAD
+
+from bidaf.model import BiDAF
 from stanford_attentive_reader.model import StanfordAttentiveReader
 
 
