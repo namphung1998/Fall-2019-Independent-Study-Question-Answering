@@ -17,6 +17,7 @@ import spacy
 import ujson as json
 import urllib.request
 import ssl
+from transformers import BertTokenizer
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -73,9 +74,14 @@ def download(args):
     print('Downloading spacy language model...')
     run(['python', '-m', 'spacy', 'download', 'en'])
 
+
 def word_tokenize(sent):
     doc = nlp(sent)
     return [token.text for token in doc]
+
+
+def word_tokenize_bert(sent):
+    return bert_tokenizer.encode(sent) # list of indices
 
 
 def convert_idx(text, tokens):
@@ -103,6 +109,9 @@ def process_file(filename, data_type, word_counter, char_counter):
                 context = para["context"].replace(
                     "''", '" ').replace("``", '" ')
                 context_tokens = word_tokenize(context)
+
+                context_bert_tokens = word_tokenize_bert(context)
+
                 context_chars = [list(token) for token in context_tokens]
                 spans = convert_idx(context, context_tokens)
                 for token in context_tokens:
@@ -114,6 +123,7 @@ def process_file(filename, data_type, word_counter, char_counter):
                     ques = qa["question"].replace(
                         "''", '" ').replace("``", '" ')
                     ques_tokens = word_tokenize(ques)
+                    ques_bert_tokens = word_tokenize_bert(ques)
                     ques_chars = [list(token) for token in ques_tokens]
                     for token in ques_tokens:
                         word_counter[token] += 1
@@ -134,8 +144,10 @@ def process_file(filename, data_type, word_counter, char_counter):
                         y1s.append(y1)
                         y2s.append(y2)
                     example = {"context_tokens": context_tokens,
+                               "context_bert_tokens": context_bert_tokens,
                                "context_chars": context_chars,
                                "ques_tokens": ques_tokens,
+                               "ques_bert_tokens": ques_bert_tokens,
                                "ques_chars": ques_chars,
                                "y1s": y1s,
                                "y2s": y2s,
@@ -268,8 +280,10 @@ def build_features(args, examples, data_type, out_file, word2idx_dict, char2idx_
     total_ = 0
     meta = {}
     context_idxs = []
+    context_bert_idxs = []
     context_char_idxs = []
     ques_idxs = []
+    ques_bert_idxs = []
     ques_char_idxs = []
     y1s = []
     y2s = []
@@ -328,12 +342,28 @@ def build_features(args, examples, data_type, out_file, word2idx_dict, char2idx_
         y1s.append(start)
         y2s.append(end)
         ids.append(example["id"])
+        c_bert_id = example["context_bert_tokens"]
+        q_bert_id = example["ques_bert_tokens"]
+
+        if len(c_bert_id) >= para_limit:
+            context_bert_idxs.append(c_bert_id[:para_limit])
+        else:
+            context_bert_idxs.append(c_bert_id + [0] * (para_limit - len(c_bert_id)))
+
+        if len(q_bert_id) >= ques_limit:
+            context_bert_idxs.append(q_bert_id[:ques_limit])
+        else:
+            context_bert_idxs.append(q_bert_id + [0] * (para_limit - len(q_bert_id)))
+        print(np.array(context_bert_idxs).shape)
+        break
 
     np.savez(out_file,
              context_idxs=np.array(context_idxs),
              context_char_idxs=np.array(context_char_idxs),
+             context_bert_idxs=np.array(context_bert_idxs),
              ques_idxs=np.array(ques_idxs),
              ques_char_idxs=np.array(ques_char_idxs),
+             ques_bert_idxs=np.array(ques_bert_idxs),
              y1s=np.array(y1s),
              y2s=np.array(y2s),
              ids=np.array(ids))
@@ -387,6 +417,7 @@ if __name__ == '__main__':
 
     # Import spacy language model
     nlp = spacy.blank("en")
+    bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     # Preprocess dataset
     args_.train_file = url_to_data_path(args_.train_url)

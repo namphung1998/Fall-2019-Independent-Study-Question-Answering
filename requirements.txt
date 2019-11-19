@@ -8,3 +8,4 @@ tqdm
 urllib3
 jupyter
 torch
+transformers
